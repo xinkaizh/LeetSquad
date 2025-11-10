@@ -1,8 +1,8 @@
 import json
 import textwrap
 
-from aws.bedrock_client import BedrockClient
-from utils.complexity import Complexity
+from ..aws.bedrock_client import BedrockClient
+from ..utility.complexity import Complexity
 
 
 class LLMJudge:
@@ -104,8 +104,8 @@ class LLMJudge:
         """
     )
 
-    def __init__(self, verbose=False):
-        self.llm_client = BedrockClient()
+    def __init__(self, model_id=None, verbose=False):
+        self.llm_client = BedrockClient(model_id=model_id)
         self.verbose = verbose
 
     def analyze_complexity(self, code: str) -> dict:
@@ -160,9 +160,7 @@ class LLMJudge:
             response = self.llm_client.generate(self.COMPLEXITY_PROMPT + code)
             validated = transform_llm_output(response)
             if validated is None:
-                raise Exception(
-                    "LLM failed to generate valid time & space complexities"
-                )
+                raise Exception("LLM failed to generate valid time & space complexities")
 
         return validated
 

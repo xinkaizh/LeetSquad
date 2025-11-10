@@ -2,7 +2,6 @@ import json
 import logging
 import uuid
 
-from ...run_test import run_green_tests
 from ..benchmarking_manager import BenchmarkingManager
 
 logger = logging.getLogger(__name__)
@@ -16,26 +15,28 @@ class CodingEvaluationAgent:
     def get_manager(cls) -> BenchmarkingManager:
         """Get or create the singleton BenchmarkingManager instance."""
         if cls._manager is None:
-            cls._manager = BenchmarkingManager()
+            raise RuntimeError("BenchmarkingManager not initialized.")
         return cls._manager
 
     @classmethod
     def initialize_manager(
         cls,
         csv_path: str = "dataset/LeetCodeQuestions.csv",
-        model: str = None,
+        llm_judge_model: str = None,
         skip_tests: bool = False,
         skip_llm_judge: bool = False,
+        limit_problems=None,
     ) -> None:
         """
         Initialize the manager with custom settings.
-        Should be called before any agent operations.
+        Must be called before any agent operations.
         """
         cls._manager = BenchmarkingManager(
             csv_path=csv_path,
-            model=model,
+            llm_judge_model=llm_judge_model,
             skip_tests=skip_tests,
             skip_llm_judge=skip_llm_judge,
+            limit_problems=limit_problems,
         )
 
     async def register(self, input) -> str:
@@ -127,52 +128,15 @@ class CodingEvaluationAgent:
             logger.error(f"Internal error processing answer: {e}")
             return json.dumps({"status": "rejected", "error": "Server-side error"})
 
-    async def start_benchmarking(self, input) -> str:
+    async def report_results(self, input) -> str:
         """
-        Start benchmarking by running tests and/or LLM judgement on
-        LeetCode problems. See README.md for input and output schema.
-
-        Expected input fields:
-        - model: Optional[str] - Model ID to use for LLM judge
-        - skip_tests: Optional[bool] - Skip running test cases
-          (default: False)
-        - skip_llm_judge: Optional[bool] - Skip LLM judgement
-          (default: False)
-        - limit: Optional[int] - Number of tests to run (None for all)
-        - task_id: Optional[str] - Specific task ID to run (None for all)
-        - agents: Optional[str] - Comma-separated list of agent names
-          (default: "agent_alpha,agent_beta,agent_gamma")
-        - csv_path: Optional[str] - Path to CSV file
-          (default: "dataset/LeetCodeQuestions.csv")
+        Report the benchmarking results.
+        See README.md for input and output schema.
         """
         try:
-            # Extract parameters from input with defaults
-            model = input.get("model")
-            skip_tests = input.get("skip_tests", False)
-            skip_llm_judge = input.get("skip_llm_judge", False)
-            limit = input.get("limit")
-            task_id = input.get("task_id")
-            agents = input.get("agents", "agent_alpha,agent_beta,agent_gamma")
-            csv_path = input.get("csv_path", "dataset/LeetCodeQuestions.csv")
-
-            # Call run_green_tests with the extracted parameters
-            results_map = run_green_tests(
-                model=model,
-                skip_tests=skip_tests,
-                skip_llm_judge=skip_llm_judge,
-                limit=limit,
-                task_id=task_id,
-                agents=agents,
-                csv_path=csv_path,
-            )
-
-            return json.dumps({"status": "accepted", "results": results_map})
-
-        except FileNotFoundError as e:
-            return json.dumps(
-                {"status": "rejected", "error": f"File not found: {str(e)}"}
-            )
+            manager = self.get_manager()
+            results = manager.report_results()
+            return json.dumps({"status": "accepted", "results": results})
         except Exception as e:
-            return json.dumps(
-                {"status": "rejected", "error": f"Benchmarking failed: {str(e)}"}
-            )
+            logger.error(f"Internal error processing answer: {e}")
+            return json.dumps({"status": "rejected", "error": "Server-side error"})

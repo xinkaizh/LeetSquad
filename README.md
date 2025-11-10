@@ -1,14 +1,12 @@
-# leetcode-benchmark
+# LeetSquad
 
 Group project for Agentic AI. We're building a green (eval) agent that benchmarks white (participant) agents on code generation capabilities using Leetcode problems.
 
-## 1. Environment Setup
-
-This section provides instructions for setting up the runtime of the agents.
-
 **Important: All commands below assume you are running from the project's root directory.**
 
-### 1.1 AWS Credentials Setup
+## 1. Setup
+
+### 1.1. AWS Setup
 
 The green agent uses AWS Bedrock for LLM access and DynamoDB for data storage. The Bedrock & DynamoDB clients will fail if you do not set up AWS credentials properly.
 
@@ -33,71 +31,51 @@ For Mac:
 3. run `aws configure`
 4. Configure your AWS access key ID and secret access key
 
-`bedrock_test.py` is provided as a playground for Bedrock. You can also use it to test if AWS credentials have been set up properly on your machine.
-
-### 1.2 Python Runtime
-
-This project uses **uv** to manage packages. To set up the Python runtime:
-
-1. Create a virtual environment: `uv venv`
-2. Activate virtual environment: `source .venv/bin/activate`
-3. Install dependencies: `uv sync`
-
-Alternatively, you can use **pip**: `pip install -r requirements.txt`
-
-**Development Tools:**
-
-- Format code: `uv run ruff format` (auto-formats with ruff)
-- Lint code: `uv run ruff check`
-- Add dependencies: Add to `pyproject.toml`, then run `uv lock` followed by `uv sync`
-- Update requirements.txt: `uv pip compile pyproject.toml -o requirements.txt` (for pip users only, not needed once everyone uses uv)
-
-We use pinned dependencies (via `uv.lock`) to ensure reproducibility across developers and deployment environments.
-
-### 1.3 CLI Commands
-
-The main entry point is `python -m src.main` with the following commands:
-
-**Launch Commands** (primary workflow):
+### 1.2. Python Runtime Setup
 
 ```bash
-# Start green agent (evaluation server)
-python -m src.main launch green [--host HOST] [--port PORT]
+# Create a virtual environment
+uv venv
 
-# Start white agent (solver)
-python -m src.main launch white [--host HOST] [--port PORT] [--agent-id ID] [--agent-name NAME]
+# Activate virtual environment
+source .venv/bin/activate
 
-# Start both agents
-python -m src.main launch both [--green-port PORT] [--white-port PORT]
+# Install dependencies
+uv sync
 ```
 
-**Test Commands** (quick testing, green only for now):
+## 2. Usage
 
 ```bash
-# Run tests on green agent
-python -m src.main test green \
-  [--model MODEL_ID] \
-  [--skip-tests] \
-  [--skip-llm-judge] \
-  [--limit N] \
-  [--task-id ID] \
-  [--agents agent1,agent2] \
-  [--csv-path PATH]
+# Start green agent (evaluation agent)
+uv run python -m src.main launch green [--optional-params]
+
+# Start white agent (solver agent)
+uv run python -m src.main launch white [--optional-params]
+
+# Retrieve benchmarking results from green agent
+uv run python -m src.green_agent.report_results
 ```
 
-**Note:** The test workflow is currently more developed but should eventually converge with the launch workflow to call the same underlying logic. For production use, prefer the `launch` commands.
+To see optional param usage:
 
-## 2. Agent Interaction
+```bash
+uv run python -m src.main launch green --help
+uv run python -m src.main launch white --help
+```
 
-The communication between green and white agents is handled through A2A protocol.
+Once the green agent is running:
 
-The green agent exposes the following skills:
+```bash
+# Run some simple test cases on green agent
+uv run python -m src.green_agent.test_server
+```
 
-- register
-- distribute_problem
-- process_answer
+## 3. Agent Interaction
 
-### 2.1 Register
+The communication between green and white agents is handled through A2A protocol. The green agent exposes the following skills:
+
+### 3.1 Register
 
 The white agent invokes this skill to register itself with the green agent. Upon receiving the request, the green agent will assign an ID to the white agent.
 
@@ -114,11 +92,12 @@ Output schema:
 
 ```json
 {
+    "status": "accepted",
     "id": "<assigned ID>"
 }
 ```
 
-### 2.2 Distribute Problem
+### 3.2 Distribute Problem
 
 The white agent invokes this skill to get a new coding problem from the green agent.
 
@@ -126,6 +105,7 @@ Input schema:
 
 ```json
 {
+    "skill": "distribute_problem",
     "id": "<assigned ID>",
     "name": "<white agent name, acts as a simple auth token>"
 }
@@ -139,12 +119,11 @@ Output schema:
     "error": "<reason for rejection, only exists if rejected>",
     "problem_description": "<problem description>",
     "starter_code": "<starter code>",
-    "entry_point": "<entry point in starter code>",
-    "prompt": "<prompt>"
+    "entry_point": "<entry point in starter code>"
 }
 ```
 
-### 2.3 Process Answer
+### 3.3 Process Answer
 
 The white agent invokes this skill to submit its answer to the green agent. The green agent will then evaluate the generated code based on its correctness and readability, and record the scores.
 
@@ -152,6 +131,7 @@ Input schema:
 
 ```json
 {
+    "skill": "process_answer",
     "id": "<assigned ID>",
     "name": "<white agent name, acts as a simple auth token>",
     "solution": "<generated code>"
@@ -165,4 +145,40 @@ Output schema:
     "status": "accepted/rejected",
     "error": "<reason for rejection, only exists if rejected>"
 }
+```
+
+### 3.4 Report Results
+
+This skill is NOT included in the public agent card and should NOT be used by white agents. Rather, it provides an interface to collect benchmarking results from the green agent.
+
+Input schema:
+
+```json
+{
+    "skill": "report_results"
+}
+```
+
+Output schema:
+
+```json
+{
+    "status": "accepted/rejected",
+    "error": "<reason for rejection, only exists if rejected>",
+    "results": "<benchmarking results>"
+}
+```
+
+## 4. For Developers
+
+```bash
+# Lint code
+uv run ruff check
+
+# Auto-format code
+uv run ruff format
+
+# To add a new dependency, modify `pyproject.toml` file , then run
+uv lock
+uv sync
 ```

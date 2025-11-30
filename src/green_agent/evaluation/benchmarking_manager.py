@@ -4,8 +4,8 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional
 
-from .accuracy_check.run_testcases import str_to_func, test_accuracy
-from .judge.llm_judge import LLMJudge
+from .accuracy_check import str_to_func, test_accuracy
+from .llm_judge import LLMJudge
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,7 @@ class BenchmarkingManager:
         self,
         csv_path: str = "dataset/LeetCodeQuestions.csv",
         llm_judge_model: Optional[str] = None,
+        llm_provider: Optional[str] = None,
         skip_tests: bool = False,
         skip_llm_judge: bool = False,
         limit_problems: Optional[int] = None,
@@ -43,12 +44,12 @@ class BenchmarkingManager:
 
         # Initialize LLM judge if needed
         self.judge = (
-            LLMJudge(model_id=llm_judge_model, verbose=False)
+            LLMJudge(provider=llm_provider, model_id=llm_judge_model, verbose=False)
             if not skip_llm_judge
             else None
         )
-        # keep max_workers small due to AWS Bedrock quota limit
-        self.llm_judge_executor = ThreadPoolExecutor(max_workers=1)
+        # adjust based on LLM quota - higher number allows more parallel calls
+        self.eval_executor = ThreadPoolExecutor(max_workers=3)
 
         # In-memory storage (designed for easy migration to DB)
         self._agents: Dict[str, str] = {}  # agent_id -> agent_name
@@ -167,7 +168,9 @@ class BenchmarkingManager:
 
         # Check if agent has completed all problems
         if current_idx >= len(self._dataset):
-            raise ValueError("No more problems available")
+            return {
+                "message": "You have completed all problems. No more problems available."
+            }
 
         # Get the next problem
         problem = self._dataset[current_idx]
@@ -210,7 +213,7 @@ class BenchmarkingManager:
         task_id = self._pending[agent_id]
 
         # Start eval process asynchronously (not blocking networking call)
-        self.llm_judge_executor.submit(self._evaluate_answer, agent_id, task_id, solution)
+        self.eval_executor.submit(self._evaluate_answer, agent_id, task_id, solution)
 
         # Clear pending and advance progress
         del self._pending[agent_id]
@@ -278,34 +281,9 @@ class BenchmarkingManager:
         }
         self._results[agent_id][task_id] = results
         logger.info(
-            f"[async] Evaluated solution for task {task_id} from agent {agent_id}. "
+            f"[async] Evaluated solution for task {task_id} from agent {agent_id} ({self._agents[agent_id]}). "
             f"Result: {results}"
         )
-
-    # TODO: this function can be deleted in favor of report_results
-    def get_results(self, agent_id: Optional[str] = None) -> Dict:
-        """
-        Get evaluation results.
-
-        Args:
-            agent_id: Optional agent identifier. If None, returns all results.
-
-        Returns:
-            Dict with results for specified agent or all agents
-        """
-        if agent_id is not None:
-            if not self.is_registered(agent_id):
-                raise ValueError("Agent not registered")
-            return self._results[agent_id]
-
-        # Return all results in the format: agent_id:task_id -> scores
-        all_results = {}
-        for aid, task_results in self._results.items():
-            for task_id, scores in task_results.items():
-                key = f"{aid}:{task_id}"
-                all_results[key] = scores
-
-        return all_results
 
     # Aggregate results for all agents and overall summary
     def report_results(self) -> Dict:

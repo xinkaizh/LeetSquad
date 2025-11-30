@@ -2,7 +2,9 @@ import json
 import logging
 import uuid
 
-from ..benchmarking_manager import BenchmarkingManager
+from .agent_docs import kick_off_message
+
+from ..evaluation import BenchmarkingManager
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +24,8 @@ class CodingEvaluationAgent:
     def initialize_manager(
         cls,
         csv_path: str = "dataset/LeetCodeQuestions.csv",
-        llm_judge_model: str = None,
+        llm_judge_model: str | None = None,
+        llm_provider: str | None = None,
         skip_tests: bool = False,
         skip_llm_judge: bool = False,
         limit_problems=None,
@@ -34,10 +37,21 @@ class CodingEvaluationAgent:
         cls._manager = BenchmarkingManager(
             csv_path=csv_path,
             llm_judge_model=llm_judge_model,
+            llm_provider=llm_provider,
             skip_tests=skip_tests,
             skip_llm_judge=skip_llm_judge,
             limit_problems=limit_problems,
         )
+
+    async def get_instructions(self, input) -> str:
+        """
+        Sends a high-level kick-off message to white agents, detailing their overall
+        task, benchmarking workflow, skills they can invoke, etc.
+
+        The green agent assumes white agents have prior knowledge to invoke this skill
+        as the starting point of interactions.
+        """
+        return json.dumps({"status": "accepted", "instructions": kick_off_message})
 
     async def register(self, input) -> str:
         """

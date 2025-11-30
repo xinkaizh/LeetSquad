@@ -2,14 +2,10 @@ import boto3
 from botocore.config import Config
 from dotenv import load_dotenv
 
-# DEFAULT_MODEL_ID = "anthropic.claude-3-5-haiku-20241022-v1:0"
-DEFAULT_MODEL_ID = "deepseek.v3-v1:0"
-
-# Loads AWS credentials from .env
-load_dotenv()
-
 
 class BedrockClient:
+    DEFAULT_MODEL_ID = "qwen.qwen3-coder-480b-a35b-v1:0"
+
     def __init__(self, model_id=None, region="us-west-2"):
         """
         Initialize the Bedrock client
@@ -18,7 +14,8 @@ class BedrockClient:
             model_id: Model ID to use (defaults to DEFAULT_MODEL_ID)
             region: AWS region (defaults to us-west-2)
         """
-        self.model_id = model_id or DEFAULT_MODEL_ID
+        load_dotenv()  # Loads AWS credentials from .env
+        self.model_id = model_id or BedrockClient.DEFAULT_MODEL_ID
         self.region = region
 
         # Setting max_retries=0 disables boto3's automatic retries
@@ -50,7 +47,13 @@ class BedrockClient:
             modelId=self.model_id,
             system=[{"text": system_prompt}],
             messages=[{"role": "user", "content": content}],
-            inferenceConfig={"maxTokens": max_tokens},
+            inferenceConfig={
+                "temperature": 0,
+                "maxTokens": max_tokens,
+            },
+            additionalModelRequestFields={
+                "seed": 294,
+            },
         )
 
         # Join all text parts into a single string
@@ -63,5 +66,4 @@ class BedrockClient:
             text = text[3:].strip()
         if text.endswith("```"):
             text = text[:-3].strip()
-
         return text

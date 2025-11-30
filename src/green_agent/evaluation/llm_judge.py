@@ -2,15 +2,15 @@ import json
 import logging
 import textwrap
 
-from ..aws.bedrock_client import BedrockClient
-from ..utility.complexity import Complexity
+from ..cloud import BedrockClient, OpenAIClient
+from .utils.complexity import Complexity
 
 logger = logging.getLogger(__name__)
 
 
 class LLMJudge:
     """
-    This class uses an LLM (via Bedrock) to analyze generated code.
+    This class uses an LLM (via OpenAI or Bedrock) to analyze generated code.
     """
 
     COMPLEXITY_PROMPT = textwrap.dedent(
@@ -24,8 +24,8 @@ class LLMJudge:
             complexity for certain data structures that make sense to do so. For
             example, you can use O(1) as the time complexity for hash tables.
         - Write complexity in Big-O notation. Use the letter n as default input size.
-            Valid values are: O(1), O(log n), O(√n), O(n), O(n log n), O(n^2), O(n^3),
-            O(2^n), O(n!)
+            Valid values are: `O(1)`, `O(log n)`, `O(√n)`, `O(n)`, `O(n log n)`, `O(n^2)`,
+            `O(n^3)`, `O(2^n)`, `O(n!)`.
         - If there are more than one input size (e.g. m and n), drop the non-dominant
             one and write complexity in terms of n only.
         - Include a one-sentence justification for your conclusion.
@@ -50,8 +50,7 @@ class LLMJudge:
     READABILITY_PROMPT = textwrap.dedent(
         """
         You are a code readability judge. Evaluate only the readability of the following
-        Python snippet, not its runtime correctness or performance, unless those aspects
-        directly harm readability. Be strict but fair in your evaluation.
+        Python snippet. Do NOT deduct points for brute force.
 
         Each of the following category is worth 3 points. Score each category and give a
         concise one-line justification for your score in each category.
@@ -62,20 +61,15 @@ class LLMJudge:
         numbers avoided or named?
 
         2. Structure
-        Is the solution decomposed into understandable blocks (early returns/guards,
-        helpers if helpful)? Is the control flow easy to follow with minimal deep
-        nesting and duplication?
+        Is the structure easy to follow? Is the solution decomposed into understandable
+        blocks if needed? Are there early returns/guards if helpful?
 
-        3. Simplicity
-        Is the logic straightforward, avoiding unnecessary cleverness? Are conditions
-        readable, invariants obvious, and state updates easy to track?
-
-        4. Idiomatic
+        3. Idiomatic
         Appropriate, readable use of Python features (e.g., tuple unpacking,
         list/dict/set comps when they improve clarity, slicing, any/all). Avoids obscure
         tricks and overly dense one-liners.
 
-        5. Comment
+        4. Comment
         Brief, high-value comments around non-obvious steps or edge-case handling.
         Avoids noisy or redundant comments. The participant does not need a comment to
         describe the overall function behavior.
@@ -88,10 +82,6 @@ class LLMJudge:
                 "justification": <str>
             },
             "structure": {
-                "score": <int>,
-                "justification": <str>
-            },
-            "simplicity": {
                 "score": <int>,
                 "justification": <str>
             },
@@ -109,15 +99,21 @@ class LLMJudge:
         """
     )
 
-    def __init__(self, model_id=None, verbose=False):
+    def __init__(self, provider=None, model_id=None, verbose=False):
         """
         Initializes LLM Judge.
 
         Args:
-            model_id: Bedrock model ID. Use None for default.
+            provider: use "aws" or "openai"
+            model_id: model ID. Use None for default.
             verbose: if True, allow one retry for bad LLM output.
         """
-        self.llm_client = BedrockClient(model_id=model_id)
+        if provider is None or provider == "openai":
+            self.llm_client = OpenAIClient(model_id=model_id)
+        elif provider == "aws":
+            self.llm_client = BedrockClient(model_id=model_id)
+        else:
+            raise ValueError("Invalid provider. Use `aws` or `openai`")
         self.verbose = verbose
 
     def analyze_complexity(self, code: str) -> dict:
@@ -183,7 +179,6 @@ class LLMJudge:
         {
             "naming": {"score": <int>, "justification": <str>},
             "structure": {"score": <int>, "justification": <str>},
-            "simplicity": {"score": <int>, "justification": <str>},
             "idiomatic": {"score": <int>, "justification": <str>},
             "comment": {"score": <int>, "justification": <str>},
             "overall": <int>
@@ -199,7 +194,6 @@ class LLMJudge:
                 if set(data.keys()) != {
                     "naming",
                     "structure",
-                    "simplicity",
                     "idiomatic",
                     "comment",
                 }:
@@ -208,7 +202,6 @@ class LLMJudge:
                 for section in (
                     "naming",
                     "structure",
-                    "simplicity",
                     "idiomatic",
                     "comment",
                 ):

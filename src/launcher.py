@@ -33,6 +33,7 @@ async def _send_skill_message(url: str, skill_data: dict):
 
 
 async def launch_remote_evaluation(green_url: str, white_url: str):
+    # clean up green agent
     print(f"Triggering white agent at {white_url}...")
     response = await _send_skill_message(white_url, {"skill": "start_solving"})
     print(f"Response: {response.get('status')}")

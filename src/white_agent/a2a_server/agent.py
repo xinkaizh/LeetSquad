@@ -1,9 +1,10 @@
 import asyncio
 import logging
 
-from agents import Agent, Runner, set_tracing_disabled
+from agents import Agent, ModelSettings, Runner, set_tracing_disabled
 from agents.exceptions import MaxTurnsExceeded
 from dotenv import load_dotenv
+from openai.types.shared import Reasoning
 from pydantic import BaseModel
 
 from ..agent_tools import register, retrieve_problem, submit_answer
@@ -44,6 +45,9 @@ class CodingSolverAgent:
         - Make sure you follow the scaffolding, otherwise you will receive 0 points.
         - Your entire solution is treated as Python code. Therefore, do NOT wrap your code
         around ``` or include any plain-text commentary - otherwise you will receive 0 points. 
+        - Your solution will be graded on time/space complexity and readability. Come up with
+        solution with optimal time complexity and make sure the code is easy to read (e.g.,
+        use meaningful variable names, add useful comments, etc.)
 
         ## Green Agent Skills
         You can invoke three skills on green agent:
@@ -68,6 +72,9 @@ class CodingSolverAgent:
             model="gpt-5-mini",
             tools=[register, retrieve_problem, submit_answer],
             output_type=CompletionSignal,
+            model_settings=ModelSettings(
+                reasoning=Reasoning(effort="medium")
+            )
         )
         if not trace:
             set_tracing_disabled(True)

@@ -4,6 +4,8 @@ import uvicorn
 from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
 
 from ..a2a_server import CodingEvaluationAgentExecutor, agent_card, extended_agent_card
 
@@ -19,9 +21,20 @@ def start_server(host: str, port: int, **benchmarking_kwargs):
         agent_executor=CodingEvaluationAgentExecutor(**benchmarking_kwargs),
         task_store=InMemoryTaskStore(),
     )
+    
+    middleware = [
+        Middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    ]
+
     server = A2AStarletteApplication(
         agent_card=agent_card,
         extended_agent_card=extended_agent_card,
         http_handler=request_handler,
+        middleware=middleware,
     )
     uvicorn.run(server.build(), host=host, port=port)

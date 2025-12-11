@@ -5,6 +5,8 @@ import uvicorn
 from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
 from a2a.server.tasks import InMemoryTaskStore
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
 
 from ..a2a_server.agent_docs import agent_card
 from ..a2a_server.agent_executor import CodingSolverAgentExecutor
@@ -28,8 +30,21 @@ def start_server(host: str, port: int, name: str, **benchmarking_kwargs):
         task_store=InMemoryTaskStore(),
     )
 
+    middleware = [
+        Middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    ]
+
     # Create A2A server application
-    server = A2AStarletteApplication(agent_card=agent_card, http_handler=request_handler)
+    server = A2AStarletteApplication(
+        agent_card=agent_card, 
+        http_handler=request_handler,
+        middleware=middleware
+    )
 
     logger.info(f"Launched white agent {name} on {host}:{port}")
     logger.info("Green agent expected at: http://localhost:9999")

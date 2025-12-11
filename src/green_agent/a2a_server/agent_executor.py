@@ -27,7 +27,7 @@ class CodingEvaluationAgentExecutor(AgentExecutor):
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
         message = context.get_user_input()
-
+        input = {}
         try:
             input = json.loads(message)
         except json.JSONDecodeError as e:

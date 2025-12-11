@@ -22,19 +22,18 @@ def start_server(host: str, port: int, **benchmarking_kwargs):
         task_store=InMemoryTaskStore(),
     )
     
-    middleware = [
-        Middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-    ]
-
     server = A2AStarletteApplication(
         agent_card=agent_card,
         extended_agent_card=extended_agent_card,
         http_handler=request_handler,
-        middleware=middleware,
     )
-    uvicorn.run(server.build(), host=host, port=port)
+    
+    app = server.build()
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    uvicorn.run(app, host=host, port=port)

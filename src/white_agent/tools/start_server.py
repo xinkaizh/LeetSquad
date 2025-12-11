@@ -30,20 +30,18 @@ def start_server(host: str, port: int, name: str, **benchmarking_kwargs):
         task_store=InMemoryTaskStore(),
     )
 
-    middleware = [
-        Middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-    ]
-
     # Create A2A server application
     server = A2AStarletteApplication(
         agent_card=agent_card, 
         http_handler=request_handler,
-        middleware=middleware
+    )
+
+    app = server.build()
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     logger.info(f"Launched white agent {name} on {host}:{port}")
@@ -51,4 +49,4 @@ def start_server(host: str, port: int, name: str, **benchmarking_kwargs):
     logger.info("Server will wait idle until 'start_solving' skill is invoked")
 
     # Start the server
-    uvicorn.run(server.build(), host=host, port=port)
+    uvicorn.run(app, host=host, port=port)

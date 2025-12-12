@@ -79,7 +79,7 @@ class CodingSolverAgent:
         if not trace:
             set_tracing_disabled(True)
 
-    async def start_solving(self) -> None:
+    async def start_solving(self, green_agent_url: str) -> None:
         if self._start_lock.locked():
             logger.info("start_solving is already running; ignoring this call.")
             return
@@ -88,7 +88,7 @@ class CodingSolverAgent:
             try:
                 result = await Runner.run(
                     self.agent,
-                    input=f"your white agent name is: {self.name}.",
+                    input=f"Your white agent name is: `{self.name}`. You will need this green agent URL when using tools: `{green_agent_url}`",
                     max_turns=self.max_turns,
                 )
                 logger.info(

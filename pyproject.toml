@@ -3,7 +3,7 @@ name = "LeetSquad"
 version = "0.1.0"
 description = "Green (eval) agent that benchmarks white (participant) agents on code generation capabilities using Leetcode problems."
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.13"
 dependencies = [
     "a2a_sdk[http-server]>=0.3.10",
     "boto3>=1.40.0",

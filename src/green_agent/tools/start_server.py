@@ -1,4 +1,5 @@
 import logging
+import os
 
 import uvicorn
 from a2a.server.apps import A2AStarletteApplication
@@ -14,9 +15,10 @@ def start_server(host: str, port: int, **benchmarking_kwargs):
     """Start the green agent (coding evaluation agent)"""
 
     logger.info(f"Starting green agent on {host}:{port}")
+    green_agent_port = port if "CLOUDRUN_HOST" in os.environ else "9999"
 
     request_handler = DefaultRequestHandler(
-        agent_executor=CodingEvaluationAgentExecutor(**benchmarking_kwargs),
+        agent_executor=CodingEvaluationAgentExecutor(green_agent_port=green_agent_port, **benchmarking_kwargs),
         task_store=InMemoryTaskStore(),
     )
     server = A2AStarletteApplication(

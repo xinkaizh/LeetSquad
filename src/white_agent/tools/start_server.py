@@ -32,8 +32,7 @@ def start_server(host: str, port: int, name: str, **benchmarking_kwargs):
     server = A2AStarletteApplication(agent_card=agent_card, http_handler=request_handler)
 
     logger.info(f"Launched white agent {name} on {host}:{port}")
-    logger.info("Green agent expected at: http://localhost:9999")
-    logger.info("Server will wait idle until 'start_solving' skill is invoked")
+    logger.info("Agnet will wait idle until 'start_solving' skill is invoked")
 
     # Start the server
     uvicorn.run(server.build(), host=host, port=port)

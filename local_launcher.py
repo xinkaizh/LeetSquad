@@ -54,7 +54,7 @@ def launch_green(
     limit_problems: int | None,
 ):
     """Start the green agent (LeetCode eval agent)"""
-    from .green_agent.tools.start_server import start_server
+    from src.green_agent.tools.start_server import start_server
     start_server(
         host,
         port,
@@ -74,7 +74,7 @@ def launch_green(
 @click.option("--trace", default=False, help="Trace agent workflow at OpenAI. Only enable for debugging")
 def launch_white(host: str, port: int, name: str, max_turns: int, trace: bool):
     """Start the white agent (LeetCode solver agent)"""
-    from .white_agent.tools import start_server
+    from src.white_agent.tools import start_server
     start_server(
         host, 
         port, 
@@ -93,7 +93,7 @@ def start_white():
 @click.option("--host", default="localhost", help="Host to bind to")
 @click.option("--port", default=9998, help="Port to listen on")
 def start_white(host: str, port: int):
-    from .white_agent.tools import start_solving
+    from src.white_agent.tools import start_solving
     import asyncio
     asyncio.run(start_solving(host, port))
 
@@ -103,7 +103,7 @@ def start_white(host: str, port: int):
 @click.option("--port", default=9999, type=int)
 def test_green(host: str, port: str):
     """Run some predefined tests on green agent"""
-    from .green_agent.tools import test_green_agent
+    from src.green_agent.tools import test_green_agent
     import asyncio
     asyncio.run(test_green_agent(host, port))
 
@@ -116,7 +116,7 @@ def test_white():
 @cli.command(name="report")
 def report_results():
     """Retrieve benchmark results from green agent"""
-    from .green_agent.tools import report_results
+    from src.green_agent.tools import report_results
     import asyncio
     asyncio.run(report_results())
 

@@ -33,16 +33,16 @@ uv sync
 
 ```bash
 # 1. Launch green agent
-uv run python -m src.main launch green [--optional-params]
+uv run local_launcher.py launch green [--optional-params]
 
 # 2. In a separate terminal, launch white agent (it won't start solving problems yet)
-uv run python -m src.main launch white [--optional-params]
+uv run local_launcher.py launch white [--optional-params]
 
 # 3. In a separate terminal, signal white agent to begin solving problems
-uv run python -m src.main run white [--optional-params]
+uv run local_launcher.py run white [--optional-params]
 
 # 4. Wait until completion and retrieve benchmarking results
-uv run python -m src.main report
+uv run local_launcher.py report
 ```
 
 Use `--help` to view the optional parameters for each command. You may also omit them to use the default settings.
@@ -204,5 +204,5 @@ uv lock
 uv sync
 
 # Run test cases on green agent
-uv run python -m src.main test green
+uv run local_launcher.py test green
 ```

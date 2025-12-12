@@ -1,11 +1,14 @@
 import asyncio
 import json
+import logging
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
 from a2a.utils import new_agent_text_message
 
 from .agent import CodingSolverAgent
 
+
+logger = logging.getLogger(__name__)
 
 class CodingSolverAgentExecutor(AgentExecutor):
     def __init__(self, **benchmarking_kwargs):
@@ -19,7 +22,11 @@ class CodingSolverAgentExecutor(AgentExecutor):
         match skill:
             case "start_solving":
                 # start the solving process in the background
-                asyncio.create_task(self.agent.start_solving())
+                green_agent_url = input.get("green_agent_url")
+                if not green_agent_url:
+                    raise ValueError("Must provide green_agent_url")
+                logger.info(f"start_solving skill triggered with green url: {green_agent_url}")
+                asyncio.create_task(self.agent.start_solving(green_agent_url))
                 result = json.dumps({"status": "accepted"})
             case _:
                 result = json.dumps({"status": "rejected", "error": "Invalid skill"})

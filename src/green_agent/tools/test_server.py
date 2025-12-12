@@ -18,7 +18,7 @@ the green agent. To use, run these commands from the root dir in order:
 async def test_green_agent(host: str, port: str) -> None:
     base_url = f"http://{host}:{port}"
 
-    async with httpx.AsyncClient() as httpx_client:
+    async with httpx.AsyncClient(timeout=60) as httpx_client:
         # Fetch Public Agent Card
         resolver = A2ACardResolver(
             httpx_client=httpx_client,
@@ -33,6 +33,14 @@ async def test_green_agent(host: str, port: str) -> None:
         # Initialize A2AClient
         client = A2AClient(httpx_client=httpx_client, agent_card=agent_card)
         print("A2AClient initialized.\n")
+
+        # AgentBeats Simulation
+        # print_header("Simulating AgentBeats")
+        # input = """Your task is to assess the agents located at: <white_agent_url> http://localhost:9998 </white_agent_url>"""
+        # response = await send_message(client, input, dumps=False)
+        # response_message = retrieve_message(response)
+        # print(f"Response: {response_message}")
+        # return
 
         # Test: Register skill
         print_header("Testing: register correct_agent")
@@ -224,7 +232,7 @@ async def two_sum_agent(client: A2AClient, agent_name: str, solution: str):
     print_header(f"White agent {agent_name} successfully submitted solution for two-sum")
 
 
-async def send_message(a2a_client, input_dict: dict):
+async def send_message(a2a_client, input_dict: dict, dumps=True):
     """
     Sends a message to the green agent. Sample input:
     {
@@ -238,7 +246,7 @@ async def send_message(a2a_client, input_dict: dict):
             "parts": [
                 {
                     "kind": "text",
-                    "text": json.dumps(input_dict),
+                    "text": json.dumps(input_dict) if dumps else input_dict,
                 }
             ],
             "messageId": uuid4().hex,

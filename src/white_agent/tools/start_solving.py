@@ -17,7 +17,7 @@ async def start_solving(host="localhost", port=9998):
             "parts": [
                 {
                     "kind": "text",
-                    "text": json.dumps({"skill": "start_solving"}),
+                    "text": json.dumps({"skill": "start_solving", "green_agent_port": "9999"}),
                 }
             ],
             "messageId": uuid4().hex,

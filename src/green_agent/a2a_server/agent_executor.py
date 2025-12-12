@@ -1,12 +1,20 @@
+import asyncio
 import json
+import logging
+import os
 import re
 
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
 from a2a.utils import new_agent_text_message
+import requests
+
+from .a2a_util import send_message
 
 from .agent import CodingEvaluationAgent
 
+
+logger = logging.getLogger(__name__)
 
 class CodingEvaluationAgentExecutor(AgentExecutor):
     """
@@ -18,12 +26,25 @@ class CodingEvaluationAgentExecutor(AgentExecutor):
     returns the result to the event queue.
     """
 
-    def __init__(self, **benchmarking_kwargs):
+    def __init__(self, green_agent_port, **benchmarking_kwargs):
         """
         Constructor args are used directly to initialize BenchmarkingManager
         """
         CodingEvaluationAgent.initialize_manager(**benchmarking_kwargs)
         self.agent = CodingEvaluationAgent()
+        # Code below is a hacky way to retrieve the actual green agent URL that looks
+        # something like https://cloudrun_host/to_agent/8358dd168ea74b3583bb3232c96ed371
+        # The white agent won't be able to call without the agent ID part
+        cloudrun_host = os.environ.get("CLOUDRUN_HOST")
+        if cloudrun_host:
+            base_url = f"https://{cloudrun_host}"
+            resp = requests.get(f"{base_url}/agents")
+            resp.raise_for_status()
+            agents = resp.json()
+            for _, agent in agents.items(): # will only have one agent
+                self.green_agent_url = agent["url"]
+        else:
+            self.green_agent_url = "http://localhost:9999"
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
         message = context.get_user_input()
@@ -31,10 +52,21 @@ class CodingEvaluationAgentExecutor(AgentExecutor):
         try:
             input = json.loads(message)
         except json.JSONDecodeError as e:
+            # message sent by AgentBeats isn't json
             # AgentBeats blog says we should be able to specify our own assessment startup
             # structure, but for now it is a hardcoded string with a tag <white_agent_url>
             if message and parse_tags(message).get("white_agent_url"):
-                result = json.dumps({"status": "accepted"})
+                white_agent_url = parse_tags(message).get("white_agent_url")
+                await send_message(white_agent_url, json.dumps(
+                    {
+                        "skill": "start_solving", 
+                        "green_agent_url": self.green_agent_url,
+                    }
+                ))
+                logger.info(f"Invoked white agent at {white_agent_url}")
+                logger.info("The white agents have 3 minutes before results are reported")
+                await asyncio.sleep(180)
+                result = await self.agent.report_results(input)
             else:
                 result = json.dumps(
                     {
@@ -48,6 +80,7 @@ class CodingEvaluationAgentExecutor(AgentExecutor):
             await event_queue.enqueue_event(new_agent_text_message(result))
             return
 
+        # messages sent by white agents will be valid json
         skill = input.get("skill")
         match skill:
             case "register":

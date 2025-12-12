@@ -14,10 +14,12 @@ logger = logging.getLogger(__name__)
 def get_green_agent_url() -> str:
     """Get the green agent URL from environment or use localhost fallback."""
     green_agent_host = os.getenv("GREEN_AGENT_HOST")
+    print(f"[DEBUG] green agent host: {green_agent_host}")
     if green_agent_host:
         https_enabled = os.getenv("HTTPS_ENABLED", "true").lower() == "true"
         protocol = "https" if https_enabled else "http"
         return f"{protocol}://{green_agent_host}"
+    print("[DEBUG] Falling back to using localhost 9999")
     return "http://localhost:9999"
 
 

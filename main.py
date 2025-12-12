@@ -1,5 +1,6 @@
 """CLI entry point for LeetBench."""
 
+import logging
 import typer
 import asyncio
 import dotenv
@@ -8,6 +9,15 @@ dotenv.load_dotenv()
 from pydantic_settings import BaseSettings
 from src.launcher import launch_remote_evaluation
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S"
+)
+# Turn down logging from noisy libraries
+logging.getLogger("a2a").setLevel(logging.ERROR)
+logging.getLogger("httpx").setLevel(logging.ERROR)
+
 class LeetSettings(BaseSettings):
     role: str = "unspecified"
     host: str = "127.0.0.1"
@@ -15,16 +25,15 @@ class LeetSettings(BaseSettings):
 
 app = typer.Typer(help="Agentified Leetcode Solver Benchmark - Standardized agent assessment framework")
 
-#@app.command()
-#def green():
-
-#@app.command()
-#def white():
 
 @app.command()
 def run():
     """Start agent based on environment variable ROLE (green/white)"""
     settings = LeetSettings()
+    typer.echo("[DEBUG] Invoked `run` function")
+    typer.echo(f"[DEBUG] {settings.role}")
+    typer.echo(f"[DEBUG] {settings.host}")
+    typer.echo(f"[DEBUG] {settings.agent_port}")
     
     if settings.role == "green":
         from src.green_agent.tools.start_server import start_server
@@ -47,10 +56,12 @@ def run():
     else:
         raise ValueError(f"Unknown role: {settings.role}. Set ROLE env variable to 'green' or 'white'")
 
+
 @app.command()
 def launch_remote(green_url: str, white_url: str):
     """Trigger remote agents to start evaluation (agents must already be running)"""
     asyncio.run(launch_remote_evaluation(green_url, white_url))
+
 
 if __name__ == "__main__":
     app()

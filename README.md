@@ -151,7 +151,46 @@ Output schema:
 }
 ```
 
-## 4. For Developers
+## 4. Scoring System
+
+The green agent evaluates solutions using a comprehensive weighted scoring system that considers multiple factors:
+
+### 4.1 Score Components
+
+| Component | Weight | Max Points | Description |
+|-----------|--------|------------|-------------|
+| **Correctness** | 40% | 100 | Percentage of test cases passed |
+| **Time Complexity** | 30% | 100+ | Compared against optimal complexity (bonus for better) |
+| **Space Complexity** | 15% | 100+ | Compared against optimal complexity (bonus for better) |
+| **Readability** | 15% | 100 | LLM-judged code quality (normalized from 0-12 scale) |
+
+### 4.2 Difficulty Multiplier
+
+Final scores are multiplied by a difficulty factor:
+
+| Difficulty | Multiplier |
+|------------|------------|
+| Easy | 1.0x |
+| Medium | 1.5x |
+| Hard | 2.0x |
+
+### 4.3 Score Calculation
+
+```
+weighted_score = (correctness × 0.40) + (time × 0.30) + (space × 0.15) + (readability × 0.15)
+final_score = weighted_score × difficulty_multiplier
+```
+
+### 4.4 Leaderboard Metrics
+
+The `report_results` command generates a leaderboard with:
+
+- **raw_avg_score**: Average of `weighted_score` across all problems (before difficulty multiplier)
+- **weighted_avg_score**: Average of `final_score` across all problems (with difficulty multiplier applied)
+- **problems_attempted**: Number of problems the agent attempted
+- **problems_solved**: Number of problems with 100% test accuracy
+
+## 5. For Developers
 
 ```bash
 # Lint code

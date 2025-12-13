@@ -94,8 +94,12 @@ class BenchmarkingManager:
                             "entry_point": row.get("entry_point", ""),
                             "query": row.get("query", ""),
                             "difficulty": row.get("difficulty", "Medium"),
-                            "optimal_time_complexity": row.get("optimal_time_complexity", ""),
-                            "optimal_space_complexity": row.get("optimal_space_complexity", ""),
+                            "optimal_time_complexity": row.get(
+                                "optimal_time_complexity", ""
+                            ),
+                            "optimal_space_complexity": row.get(
+                                "optimal_space_complexity", ""
+                            ),
                         }
                     )
                     if limit_problems and len(self._dataset) >= limit_problems:
@@ -104,20 +108,20 @@ class BenchmarkingManager:
         except FileNotFoundError:
             logger.error(f"Dataset CSV file not found: {self.csv_path}")
             raise
-    
+
     def _get_problem_by_task_id(self, task_id: str) -> Optional[Dict]:
         """Get problem data by task_id."""
         for problem in self._dataset:
             if problem["task_id"] == task_id:
                 return problem
         return None
-    
+
     def _calculate_complexity_score(
         self, achieved: Optional[int], optimal_str: str, complexity_type: str = "time"
     ) -> Dict:
         """
         Calculate complexity score comparing achieved vs optimal.
-        
+
         Scoring:
         - Optimal or better: 100 points + bonus for beating optimal
         - Within 1 level: 80 points
@@ -125,23 +129,27 @@ class BenchmarkingManager:
         - Within 3 levels: 40 points
         - Worse: 20 points
         - No data: 0 points
-        
+
         Returns dict with score, achieved, optimal, and comparison status.
         """
         from .utils.complexity import Complexity
-        
+
         result = {
             "score": 0,
             "achieved": None,
             "optimal": optimal_str or "Unknown",
             "status": "unknown",  # optimal, better, close, suboptimal, poor
         }
-        
+
         if achieved is None:
             return result
-        
-        result["achieved"] = str(Complexity(achieved)) if achieved in [c.value for c in Complexity] else f"Level {achieved}"
-        
+
+        result["achieved"] = (
+            str(Complexity(achieved))
+            if achieved in [c.value for c in Complexity]
+            else f"Level {achieved}"
+        )
+
         # Try to parse optimal complexity
         optimal_num = None
         if optimal_str:
@@ -150,9 +158,13 @@ class BenchmarkingManager:
             except (KeyError, ValueError):
                 # Try common variations
                 variations = {
-                    "O(n)": "O(n)", "O(1)": "O(1)", "O(log n)": "O(log n)",
-                    "O(n log n)": "O(n log n)", "O(n^2)": "O(n^2)",
-                    "O(n²)": "O(n^2)", "O(logn)": "O(log n)",
+                    "O(n)": "O(n)",
+                    "O(1)": "O(1)",
+                    "O(log n)": "O(log n)",
+                    "O(n log n)": "O(n log n)",
+                    "O(n^2)": "O(n^2)",
+                    "O(n²)": "O(n^2)",
+                    "O(logn)": "O(log n)",
                 }
                 normalized = variations.get(optimal_str.replace(" ", ""))
                 if normalized:
@@ -160,16 +172,16 @@ class BenchmarkingManager:
                         optimal_num = int(Complexity.from_string(normalized))
                     except (KeyError, ValueError):
                         pass
-        
+
         if optimal_num is None:
             # Can't compare, give partial credit for having a solution
             result["score"] = 50
             result["status"] = "unknown"
             return result
-        
+
         # Compare: higher enum value = better complexity
         diff = achieved - optimal_num
-        
+
         if diff >= 0:
             # Achieved is same or better than optimal
             result["score"] = 100 + (diff * 10)  # Bonus for beating optimal
@@ -186,7 +198,7 @@ class BenchmarkingManager:
         else:
             result["score"] = 20
             result["status"] = "poor"
-        
+
         return result
 
     def register_agent(self, agent_id: str, agent_name: str) -> None:
@@ -321,10 +333,12 @@ class BenchmarkingManager:
         optimal_time = problem.get("optimal_time_complexity", "") if problem else ""
         optimal_space = problem.get("optimal_space_complexity", "") if problem else ""
         difficulty = problem.get("difficulty", "Medium") if problem else "Medium"
-        
+
         # Difficulty multiplier for scoring
-        difficulty_multiplier = {"Easy": 1.0, "Medium": 1.5, "Hard": 2.0}.get(difficulty, 1.0)
-        
+        difficulty_multiplier = {"Easy": 1.0, "Medium": 1.5, "Hard": 2.0}.get(
+            difficulty, 1.0
+        )
+
         # Evaluate the solution
         tests_percent = None
         time_complexity_num = None
@@ -368,30 +382,34 @@ class BenchmarkingManager:
                 )
 
         # Calculate complexity scores against optimal
-        time_score_data = self._calculate_complexity_score(time_complexity_num, optimal_time, "time")
-        space_score_data = self._calculate_complexity_score(space_complexity_num, optimal_space, "space")
-        
+        time_score_data = self._calculate_complexity_score(
+            time_complexity_num, optimal_time, "time"
+        )
+        space_score_data = self._calculate_complexity_score(
+            space_complexity_num, optimal_space, "space"
+        )
+
         # Calculate total problem score
         # Correctness: 40% weight (max 100 points)
         correctness_score = tests_percent if tests_percent is not None else 0
-        
+
         # Time complexity: 30% weight (max 100+ points with bonus)
         time_score = time_score_data["score"]
-        
+
         # Space complexity: 15% weight (max 100+ points with bonus)
         space_score = space_score_data["score"]
-        
+
         # Readability: 15% weight (max 12 points -> normalized to 100)
         readability_score = (readability_overall / 12 * 100) if readability_overall else 0
-        
+
         # Weighted total (before difficulty multiplier)
         weighted_score = (
-            correctness_score * 0.40 +
-            time_score * 0.30 +
-            space_score * 0.15 +
-            readability_score * 0.15
+            correctness_score * 0.40
+            + time_score * 0.30
+            + space_score * 0.15
+            + readability_score * 0.15
         )
-        
+
         # Apply difficulty multiplier for final score
         final_score = round(weighted_score * difficulty_multiplier, 1)
 
@@ -473,11 +491,25 @@ class BenchmarkingManager:
             total_tests = 0
             correctness_total = 0.0
             readability_total = 0.0
-            
+
             # Complexity status counters
-            time_status_counts = {"optimal": 0, "better": 0, "close": 0, "suboptimal": 0, "poor": 0, "unknown": 0}
-            space_status_counts = {"optimal": 0, "better": 0, "close": 0, "suboptimal": 0, "poor": 0, "unknown": 0}
-            
+            time_status_counts = {
+                "optimal": 0,
+                "better": 0,
+                "close": 0,
+                "suboptimal": 0,
+                "poor": 0,
+                "unknown": 0,
+            }
+            space_status_counts = {
+                "optimal": 0,
+                "better": 0,
+                "close": 0,
+                "suboptimal": 0,
+                "poor": 0,
+                "unknown": 0,
+            }
+
             # By difficulty tracking (score = final_score with multiplier, raw_score = before multiplier)
             by_difficulty = {
                 "Easy": {"attempted": 0, "score": 0.0, "raw_score": 0.0},
@@ -487,7 +519,7 @@ class BenchmarkingManager:
 
             # Pull accuracy details from detailed results if available
             detailed = self._detailed_results.get(agent_id, {})
-            
+
             # Track raw weighted scores (before difficulty multiplier)
             raw_weighted_score_total = 0.0
 
@@ -495,36 +527,38 @@ class BenchmarkingManager:
                 # Accumulate final scores
                 final_score = scores.get("final_score", 0)
                 total_score += final_score
-                
+
                 # Accumulate raw weighted scores (before difficulty multiplier)
                 raw_weighted_score_total += scores.get("weighted_score", 0)
-                
+
                 # Correctness
                 correctness = scores.get("correctness_score", 0)
                 correctness_total += correctness
-                
+
                 # Readability
                 readability = scores.get("readability_score", 0)
                 readability_total += readability
-                
+
                 # Time complexity status
                 time_score_data = scores.get("time_score", {})
                 time_status = time_score_data.get("status", "unknown")
                 if time_status in time_status_counts:
                     time_status_counts[time_status] += 1
-                
+
                 # Space complexity status
                 space_score_data = scores.get("space_score", {})
                 space_status = space_score_data.get("status", "unknown")
                 if space_status in space_status_counts:
                     space_status_counts[space_status] += 1
-                
+
                 # By difficulty
                 difficulty = scores.get("difficulty", "Medium")
                 if difficulty in by_difficulty:
                     by_difficulty[difficulty]["attempted"] += 1
                     by_difficulty[difficulty]["score"] += final_score
-                    by_difficulty[difficulty]["raw_score"] += scores.get("weighted_score", 0)
+                    by_difficulty[difficulty]["raw_score"] += scores.get(
+                        "weighted_score", 0
+                    )
 
                 # Sum passed/total when recorded in detailed results
                 acc = detailed.get(task_id, {}).get("accuracy", {})
@@ -538,13 +572,21 @@ class BenchmarkingManager:
             problems_attempted = len(task_results)
             optimal_count = time_status_counts["optimal"] + time_status_counts["better"]
             better_count = time_status_counts["better"]
-            
+
             # raw_avg_score: average of weighted_score (before difficulty multiplier)
-            raw_avg_score = round(raw_weighted_score_total / problems_attempted, 1) if problems_attempted > 0 else 0
-            
+            raw_avg_score = (
+                round(raw_weighted_score_total / problems_attempted, 1)
+                if problems_attempted > 0
+                else 0
+            )
+
             # difficulty_adjusted_avg_score: average of final_score (with difficulty multiplier already applied)
-            difficulty_adjusted_avg_score = round(total_score / problems_attempted, 1) if problems_attempted > 0 else 0
-            
+            difficulty_adjusted_avg_score = (
+                round(total_score / problems_attempted, 1)
+                if problems_attempted > 0
+                else 0
+            )
+
             agents_summary[agent_id] = {
                 "name": agent_name,
                 "problems_attempted": problems_attempted,
@@ -554,48 +596,68 @@ class BenchmarkingManager:
                 "scores_breakdown": {
                     "correctness": {
                         "total": round(correctness_total, 1),
-                        "avg": round(correctness_total / problems_attempted, 1) if problems_attempted > 0 else 0,
+                        "avg": round(correctness_total / problems_attempted, 1)
+                        if problems_attempted > 0
+                        else 0,
                     },
                     "time_complexity": time_status_counts,
                     "space_complexity": space_status_counts,
                     "readability": {
                         "total": round(readability_total, 1),
-                        "avg": round(readability_total / problems_attempted, 1) if problems_attempted > 0 else 0,
+                        "avg": round(readability_total / problems_attempted, 1)
+                        if problems_attempted > 0
+                        else 0,
                     },
                 },
                 "by_difficulty": {
                     diff: {
                         "attempted": data["attempted"],
                         "total_score": round(data["score"], 1),
-                        "raw_avg_score": round(data["raw_score"] / data["attempted"], 1) if data["attempted"] > 0 else 0,
-                        "difficulty_adjusted_avg_score": round(data["score"] / data["attempted"], 1) if data["attempted"] > 0 else 0,
+                        "raw_avg_score": round(data["raw_score"] / data["attempted"], 1)
+                        if data["attempted"] > 0
+                        else 0,
+                        "difficulty_adjusted_avg_score": round(
+                            data["score"] / data["attempted"], 1
+                        )
+                        if data["attempted"] > 0
+                        else 0,
                     }
                     for diff, data in by_difficulty.items()
                 },
                 "tests": {
                     "total_passed": total_passed,
                     "total": total_tests,
-                    "percent": round(100.0 * total_passed / total_tests, 1) if total_tests > 0 else None,
+                    "percent": round(100.0 * total_passed / total_tests, 1)
+                    if total_tests > 0
+                    else None,
                 },
             }
-            
+
             # Add to leaderboard data
-            leaderboard_data.append({
-                "agent_id": agent_id,
-                "name": agent_name,
-                "total_score": round(total_score, 1),
-                "raw_avg_score": raw_avg_score,
-                "difficulty_adjusted_avg_score": difficulty_adjusted_avg_score,
-                "problems_attempted": problems_attempted,
-                "problems_with_100_percent": sum(1 for s in task_results.values() if s.get("tests_percent") == 100),
-                "optimal_solutions": optimal_count,
-                "better_than_optimal": better_count,
-                "test_pass_rate": round(100.0 * total_passed / total_tests, 1) if total_tests > 0 else 0,
-            })
+            leaderboard_data.append(
+                {
+                    "agent_id": agent_id,
+                    "name": agent_name,
+                    "total_score": round(total_score, 1),
+                    "raw_avg_score": raw_avg_score,
+                    "difficulty_adjusted_avg_score": difficulty_adjusted_avg_score,
+                    "problems_attempted": problems_attempted,
+                    "problems_with_100_percent": sum(
+                        1 for s in task_results.values() if s.get("tests_percent") == 100
+                    ),
+                    "optimal_solutions": optimal_count,
+                    "better_than_optimal": better_count,
+                    "test_pass_rate": round(100.0 * total_passed / total_tests, 1)
+                    if total_tests > 0
+                    else 0,
+                }
+            )
 
         # Sort leaderboard by total_score descending
-        leaderboard_data.sort(key=lambda x: (-x["total_score"], -x["optimal_solutions"], x["name"]))
-        
+        leaderboard_data.sort(
+            key=lambda x: (-x["total_score"], -x["optimal_solutions"], x["name"])
+        )
+
         # Add ranks
         leaderboard = []
         for rank, entry in enumerate(leaderboard_data, 1):

@@ -16,7 +16,7 @@ from a2a.types import (
 async def send_message(
     url, message, task_id=None, context_id=None
 ) -> SendMessageResponse:
-    """ Util function for sending a message via A2A protocol """
+    """Util function for sending a message via A2A protocol"""
     httpx_client = httpx.AsyncClient(timeout=120.0)
     resolver = A2ACardResolver(httpx_client=httpx_client, base_url=url)
     card = await resolver.get_agent_card()

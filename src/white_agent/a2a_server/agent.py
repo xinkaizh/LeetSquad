@@ -72,9 +72,7 @@ class CodingSolverAgent:
             model="gpt-5-mini",
             tools=[register, retrieve_problem, submit_answer],
             output_type=CompletionSignal,
-            model_settings=ModelSettings(
-                reasoning=Reasoning(effort="medium")
-            )
+            model_settings=ModelSettings(reasoning=Reasoning(effort="medium")),
         )
         if not trace:
             set_tracing_disabled(True)

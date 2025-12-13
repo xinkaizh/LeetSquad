@@ -16,6 +16,7 @@ from .agent import CodingEvaluationAgent
 
 logger = logging.getLogger(__name__)
 
+
 class CodingEvaluationAgentExecutor(AgentExecutor):
     """
     Executor class for the CodingEvaluationAgent.
@@ -59,18 +60,21 @@ class CodingEvaluationAgentExecutor(AgentExecutor):
                 # green agent's own URL for callback
                 # TODO: implement a loop
                 white_agent_url = parse_tags(message).get("white_agent_url")
-                await send_message(white_agent_url, json.dumps(
-                    {
-                        "skill": "start_solving", 
-                        "green_agent_url": self.green_agent_url,
-                    }
-                ))
+                await send_message(
+                    white_agent_url,
+                    json.dumps(
+                        {
+                            "skill": "start_solving",
+                            "green_agent_url": self.green_agent_url,
+                        }
+                    ),
+                )
                 logger.info(f"Invoked white agent at {white_agent_url}")
                 logger.info("The white agents have 3 minutes before results are reported")
                 # Code below will keep AgentBeats assessment running for 3 minutes.
                 # After 3 minutes, the green agent will report results to AgentBeats
                 # and the assessement ends automatically.
-                await asyncio.sleep(180)  
+                await asyncio.sleep(180)
                 result = await self.agent.report_results(input)
             else:
                 result = json.dumps(

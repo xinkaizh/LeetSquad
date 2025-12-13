@@ -18,7 +18,9 @@ def start_server(host: str, port: int, **benchmarking_kwargs):
     green_agent_port = port if "CLOUDRUN_HOST" in os.environ else "9999"
 
     request_handler = DefaultRequestHandler(
-        agent_executor=CodingEvaluationAgentExecutor(green_agent_port=green_agent_port, **benchmarking_kwargs),
+        agent_executor=CodingEvaluationAgentExecutor(
+            green_agent_port=green_agent_port, **benchmarking_kwargs
+        ),
         task_store=InMemoryTaskStore(),
     )
     server = A2AStarletteApplication(

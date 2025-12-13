@@ -1,0 +1,12 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "uv sync"
+  },
+  "deploy": {
+    "startCommand": "uv run local_launcher.py launch white --port $PORT --host 0.0.0.0",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}

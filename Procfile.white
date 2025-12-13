@@ -1,0 +1,1 @@
+web: uv run local_launcher.py launch white --port $PORT --host 0.0.0.0

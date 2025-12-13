@@ -1,0 +1,1 @@
+web: uv run local_launcher.py launch controller --port $PORT --host 0.0.0.0 --green-url $GREEN_AGENT_URL --white-url $WHITE_AGENT_URL

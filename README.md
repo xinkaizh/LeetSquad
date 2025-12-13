@@ -190,7 +190,49 @@ The `report_results` command generates a leaderboard with:
 - **problems_attempted**: Number of problems the agent attempted
 - **problems_solved**: Number of problems with 100% test accuracy
 
-## 5. For Developers
+## 5. AgentBeats Deployment
+
+To register your agents with [AgentBeats](https://v2.agentbeats.org), you need to deploy a controller service that provides multi-agent routing.
+
+### 5.1 Local Testing
+
+```bash
+# 1. Start green agent on port 9999
+uv run local_launcher.py launch green
+
+# 2. Start white agent on port 9998 (optional, in a separate terminal)
+uv run local_launcher.py launch white
+
+# 3. Start controller on port 8000 (in a separate terminal)
+uv run local_launcher.py launch controller
+```
+
+The controller will be available at `http://localhost:8000` with:
+- Green agent: `http://localhost:8000/to_agent/<green-id>`
+- Agent list: `http://localhost:8000/agents`
+
+### 5.2 Render Deployment
+
+**Green Agent Service:**
+- Build Command: `uv sync`
+- Start Command: `ROLE=green AGENT_PORT=$PORT uv run local_launcher.py launch green --port $PORT`
+
+**White Agent Service (optional):**
+- Build Command: `uv sync`
+- Start Command: `ROLE=white AGENT_PORT=$PORT GREEN_AGENT_URL=<green-agent-url> uv run local_launcher.py launch white --port $PORT`
+
+**Controller Service:**
+- Build Command: `uv sync`
+- Start Command: `GREEN_AGENT_URL=<green-agent-url> WHITE_AGENT_URL=<white-agent-url> uv run local_launcher.py launch controller --port $PORT --green-url $GREEN_AGENT_URL --white-url $WHITE_AGENT_URL`
+
+### 5.3 Registering on AgentBeats
+
+1. Deploy the **controller service** to Render
+2. On AgentBeats, use the **controller URL** (e.g., `https://your-controller.onrender.com`)
+3. AgentBeats will discover agents via the `/agents` endpoint
+4. Your agents will be accessible at `/to_agent/<agent-id>`
+
+## 6. For Developers
 
 ```bash
 # Lint code

@@ -36,6 +36,17 @@ def test():
     pass
 
 
+@launch.command(name="controller")
+@click.option("--host", default="0.0.0.0", type=str, show_default=True, help="Host to bind to")
+@click.option("--port", default=8000, type=int, show_default=True, help="Port to listen on")
+@click.option("--green-url", default="http://localhost:9999", type=str, show_default=True, help="Green agent backend URL")
+@click.option("--white-url", default="http://localhost:9998", type=str, show_default=True, help="White agent backend URL")
+def launch_controller(host: str, port: int, green_url: str, white_url: str):
+    """Launch the agent controller (for AgentBeats multi-agent routing)"""
+    from src.controller.server import start_controller
+    start_controller(host=host, port=port, green_agent_url=green_url, white_agent_url=white_url)
+
+
 @launch.command(name="green")
 @click.option("--host", default="0.0.0.0", type=str, show_default=True, help="Host to bind to")
 @click.option("--port", default=9999, type=int, show_default=True, help="Port to listen on")

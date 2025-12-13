@@ -32,26 +32,25 @@ uv sync
 ## 2. Usage
 
 ```bash
-# 1. Launch green agent
-uv run local_launcher.py launch green [--optional-params]
+# 1. In a separate terminal, launch green agent
+uv run main.py green
 
 # 2. In a separate terminal, launch white agent (it won't start solving problems yet)
-uv run local_launcher.py launch white [--optional-params]
+uv run main.py white
 
 # 3. In a separate terminal, signal white agent to begin solving problems
-uv run local_launcher.py run white [--optional-params]
+uv run main.py start
 
 # 4. Wait until completion and retrieve benchmarking results
-uv run local_launcher.py report
+uv run main.py report
 ```
 
 Use `--help` to view the optional parameters for each command. You may also omit them to use the default settings.
 
 **Note:**
 
-- The full dataset contains 2,641 problems. By default, the green agent loads only 10. You can use `--limit-problems` to change this.
-- By default, the white agent may invoke green-agent skills up to 25 times (enough for 10 problems). You can adjust this using `--max-turns`.
-- As a rule of thumb: `max_turns = 2 × limit_problems + 5`
+- The full dataset contains 2,641 problems. By default, the green agent loads only the first 10. You can use `--limit-problems` to change this.
+- By default, the white agent may invoke green-agent skills up to 25 times (enough for 10 problems). You can adjust this using `--max-turns`. As a rule of thumb: `max_turns = 2 × limit_problems + 5`
 
 ## 3. Agent Interaction
 
@@ -129,33 +128,11 @@ Output schema:
 }
 ```
 
-### 3.4 *Report Results
-
-This skill is NOT included in the public agent card and should NOT be used by white agents. Rather, it's included as a convenience skill to collect benchmarking results from the green agent.
-
-Input schema:
-
-```json
-{
-    "skill": "report_results"
-}
-```
-
-Output schema:
-
-```json
-{
-    "status": "accepted/rejected",
-    "error": "<reason for rejection, only exists if rejected>",
-    "results": "<benchmarking results>"
-}
-```
-
 ## 4. Scoring System
 
-The green agent evaluates solutions using a comprehensive weighted scoring system that considers multiple factors:
+### 4.1 Score Calculation
 
-### 4.1 Score Components
+The green agent evaluates solutions using a comprehensive scoring system that considers multiple factors:
 
 | Component | Weight | Max Points | Description |
 |-----------|--------|------------|-------------|
@@ -164,9 +141,7 @@ The green agent evaluates solutions using a comprehensive weighted scoring syste
 | **Space Complexity** | 15% | 100+ | Compared against optimal complexity (bonus for better) |
 | **Readability** | 15% | 100 | LLM-judged code quality (normalized from 0-12 scale) |
 
-### 4.2 Difficulty Multiplier
-
-Final scores are multiplied by a difficulty factor:
+Weighted scores are then multiplied by a difficulty factor:
 
 | Difficulty | Multiplier |
 |------------|------------|
@@ -174,14 +149,13 @@ Final scores are multiplied by a difficulty factor:
 | Medium | 1.5x |
 | Hard | 2.0x |
 
-### 4.3 Score Calculation
+In short:
 
-```
-weighted_score = (correctness × 0.40) + (time × 0.30) + (space × 0.15) + (readability × 0.15)
-final_score = weighted_score × difficulty_multiplier
-```
+- weighted_score = (correctness × 0.40) + (time × 0.30) + (space × 0.15) + (readability × 0.15)
+- final_score = weighted_score × difficulty_multiplier
 
-### 4.4 Leaderboard Metrics
+
+### 4.2 Leaderboard Metrics
 
 The `report_results` command generates a leaderboard with:
 
@@ -204,5 +178,5 @@ uv lock
 uv sync
 
 # Run test cases on green agent
-uv run local_launcher.py test green
+uv run main.py test
 ```

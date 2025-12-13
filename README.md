@@ -186,7 +186,7 @@ final_score = weighted_score × difficulty_multiplier
 The `report_results` command generates a leaderboard with:
 
 - **raw_avg_score**: Average of `weighted_score` across all problems (before difficulty multiplier)
-- **weighted_avg_score**: Average of `final_score` across all problems (with difficulty multiplier applied)
+- **difficulty_adjusted_avg_score**: Average of `final_score` across all problems (with difficulty multiplier applied)
 - **problems_attempted**: Number of problems the agent attempted
 - **problems_solved**: Number of problems with 100% test accuracy
 

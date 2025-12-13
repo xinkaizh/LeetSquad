@@ -542,15 +542,15 @@ class BenchmarkingManager:
             # raw_avg_score: average of weighted_score (before difficulty multiplier)
             raw_avg_score = round(raw_weighted_score_total / problems_attempted, 1) if problems_attempted > 0 else 0
             
-            # weighted_avg_score: average of final_score (with difficulty multiplier already applied)
-            weighted_avg_score = round(total_score / problems_attempted, 1) if problems_attempted > 0 else 0
+            # difficulty_adjusted_avg_score: average of final_score (with difficulty multiplier already applied)
+            difficulty_adjusted_avg_score = round(total_score / problems_attempted, 1) if problems_attempted > 0 else 0
             
             agents_summary[agent_id] = {
                 "name": agent_name,
                 "problems_attempted": problems_attempted,
                 "total_score": round(total_score, 1),
                 "raw_avg_score": raw_avg_score,
-                "weighted_avg_score": weighted_avg_score,
+                "difficulty_adjusted_avg_score": difficulty_adjusted_avg_score,
                 "scores_breakdown": {
                     "correctness": {
                         "total": round(correctness_total, 1),
@@ -566,9 +566,9 @@ class BenchmarkingManager:
                 "by_difficulty": {
                     diff: {
                         "attempted": data["attempted"],
-                        "score": round(data["score"], 1),
+                        "total_score": round(data["score"], 1),
                         "raw_avg_score": round(data["raw_score"] / data["attempted"], 1) if data["attempted"] > 0 else 0,
-                        "weighted_avg_score": round(data["score"] / data["attempted"], 1) if data["attempted"] > 0 else 0,
+                        "difficulty_adjusted_avg_score": round(data["score"] / data["attempted"], 1) if data["attempted"] > 0 else 0,
                     }
                     for diff, data in by_difficulty.items()
                 },
@@ -585,7 +585,7 @@ class BenchmarkingManager:
                 "name": agent_name,
                 "total_score": round(total_score, 1),
                 "raw_avg_score": raw_avg_score,
-                "weighted_avg_score": weighted_avg_score,
+                "difficulty_adjusted_avg_score": difficulty_adjusted_avg_score,
                 "problems_attempted": problems_attempted,
                 "problems_with_100_percent": sum(1 for s in task_results.values() if s.get("tests_percent") == 100),
                 "optimal_solutions": optimal_count,
